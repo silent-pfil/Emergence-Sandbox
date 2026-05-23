@@ -1,0 +1,1626 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Emergence Sandbox</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+
+:root{
+  --bg:#08060f;
+  --surface:#0d0a18;
+  --border:rgba(180,140,255,0.13);
+  --accent:#b48cff;
+  --accent2:#ff8cdc;
+  --accent3:#8cffdc;
+  --text:#e8e0ff;
+  --text-dim:rgba(232,224,255,0.4);
+  --mono:'Space Mono',monospace;
+  --display:'Bebas Neue',sans-serif;
+  --glow:rgba(180,140,255,0.12);
+  --glow2:rgba(255,140,220,0.1);
+}
+
+body{
+  background:var(--bg);
+  color:var(--text);
+  font-family:var(--mono);
+  min-height:100vh;
+  overflow-x:hidden;
+  transition:background 0.5s,color 0.5s;
+}
+
+/* Noise texture overlay */
+body::before{
+  content:'';position:fixed;inset:0;
+  background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+  pointer-events:none;z-index:999;opacity:0.4;
+}
+
+body::after{
+  content:'';position:fixed;inset:0;
+  background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.02) 2px,rgba(0,0,0,0.02) 4px);
+  pointer-events:none;z-index:998;
+}
+
+/* ── HEADER ── */
+.header{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:12px 20px;
+  border-bottom:1px solid var(--border);
+  position:sticky;top:0;
+  background:rgba(8,6,15,0.95);
+  backdrop-filter:blur(14px);
+  z-index:100;gap:8px;flex-wrap:wrap;
+}
+.header-title{
+  font-family:var(--display);font-size:22px;letter-spacing:0.18em;
+  color:var(--accent);white-space:nowrap;
+  text-shadow:0 0 30px rgba(180,140,255,0.5),0 0 60px rgba(180,140,255,0.2);
+}
+.header-sub{font-size:8px;color:var(--text-dim);letter-spacing:0.2em;margin-top:-3px;}
+.tier-nav{display:flex;gap:3px;flex-wrap:wrap;}
+.tier-btn{
+  background:none;border:1px solid var(--border);
+  color:var(--text-dim);font-family:var(--mono);font-size:10px;
+  padding:5px 10px;cursor:pointer;transition:all 0.2s;letter-spacing:0.1em;
+}
+.tier-btn:hover,.tier-btn.active{
+  border-color:var(--accent);color:var(--accent);
+  background:var(--glow);box-shadow:0 0 12px rgba(180,140,255,0.2);
+}
+.void-btn{
+  background:none;border:1px solid var(--border);color:var(--text-dim);
+  font-family:var(--mono);font-size:10px;padding:5px 10px;
+  cursor:pointer;transition:all 0.2s;letter-spacing:0.1em;
+}
+.void-btn:hover{border-color:var(--text-dim);color:var(--text);}
+
+.tier{display:none;min-height:calc(100vh - 60px);}
+.tier.active{display:block;}
+
+/* ══════════════════════════════════════
+   TIER I
+══════════════════════════════════════ */
+.t1-layout{
+  display:grid;grid-template-columns:1fr 300px;
+  height:calc(100vh - 60px);
+}
+.t1-canvas-wrap{
+  position:relative;overflow:hidden;
+  border-right:1px solid var(--border);
+  cursor:crosshair;
+  background:radial-gradient(ellipse at 40% 50%,rgba(180,140,255,0.04) 0%,transparent 70%);
+}
+#t1Canvas{width:100%;height:100%;display:block;}
+
+.t1-rules-overlay{
+  position:absolute;top:14px;left:14px;
+  font-size:8px;color:var(--text-dim);letter-spacing:0.12em;
+  line-height:2.2;
+  background:rgba(8,6,15,0.75);
+  padding:10px 14px;border:1px solid var(--border);
+  pointer-events:none;
+}
+.t1-rules-overlay .rule{color:var(--accent);}
+.t1-hint{
+  position:absolute;bottom:14px;left:50%;transform:translateX(-50%);
+  font-size:8px;color:var(--text-dim);letter-spacing:0.15em;
+  background:rgba(8,6,15,0.75);padding:5px 12px;border:1px solid var(--border);
+  pointer-events:none;white-space:nowrap;
+}
+
+.t1-panel{
+  padding:20px;overflow-y:auto;
+  display:flex;flex-direction:column;gap:16px;
+}
+.t1-panel::-webkit-scrollbar{width:3px;}
+.t1-panel::-webkit-scrollbar-thumb{background:var(--border);}
+
+.t1-intro-title{
+  font-family:var(--display);font-size:28px;letter-spacing:0.1em;
+  color:var(--accent);line-height:1.1;
+  text-shadow:0 0 20px rgba(180,140,255,0.3);
+}
+.t1-intro-sub{font-size:8.5px;color:var(--text-dim);letter-spacing:0.15em;line-height:2;margin-top:6px;}
+
+.rule-panel{border:1px solid var(--border);padding:14px;}
+.rp-title{font-size:8px;color:var(--accent);letter-spacing:0.2em;margin-bottom:12px;}
+.rp-row{display:flex;align-items:center;gap:10px;margin-bottom:9px;}
+.rp-label{font-size:8.5px;color:var(--text);width:100px;flex-shrink:0;letter-spacing:0.04em;}
+.rp-val{font-size:8.5px;color:var(--accent);width:36px;text-align:right;flex-shrink:0;}
+input[type=range]{
+  -webkit-appearance:none;flex:1;height:2px;
+  background:rgba(255,255,255,0.08);outline:none;cursor:pointer;
+}
+input[type=range]::-webkit-slider-thumb{
+  -webkit-appearance:none;width:10px;height:10px;
+  background:var(--accent);border-radius:50%;cursor:pointer;
+  box-shadow:0 0 6px var(--accent);
+}
+
+.complexity-meter{border:1px solid var(--border);padding:14px;}
+.cm-title{font-size:8px;color:var(--accent);letter-spacing:0.2em;margin-bottom:8px;}
+.cm-bar-bg{height:10px;background:rgba(255,255,255,0.05);border:1px solid var(--border);overflow:hidden;margin-bottom:6px;}
+.cm-bar-fill{height:100%;transition:width 0.4s,background 0.4s;}
+.cm-label{font-size:8px;color:var(--text-dim);letter-spacing:0.1em;line-height:1.8;}
+.cm-val{font-size:18px;color:var(--accent);margin-bottom:4px;}
+
+.t1-agent-count{border:1px solid var(--border);padding:14px;}
+.t1-stat{font-size:8px;color:var(--text-dim);letter-spacing:0.15em;margin-bottom:5px;}
+.t1-stat span{color:var(--accent);}
+
+/* ══════════════════════════════════════
+   TIER II
+══════════════════════════════════════ */
+.t2-headline{
+  padding:20px 20px 0;
+  font-family:var(--display);font-size:18px;letter-spacing:0.18em;color:var(--text-dim);
+}
+.t2-sub{padding:4px 20px 16px;font-size:8.5px;color:var(--text-dim);letter-spacing:0.15em;}
+
+.examples-grid{
+  display:grid;grid-template-columns:repeat(3,1fr);
+  border-top:1px solid var(--border);
+}
+.ex-card{
+  border-right:1px solid var(--border);
+  border-bottom:1px solid var(--border);
+  padding:16px;cursor:pointer;transition:background 0.2s;
+  position:relative;overflow:hidden;
+}
+.ex-card:nth-child(3n){border-right:none;}
+.ex-card:hover{background:rgba(180,140,255,0.04);}
+.ex-card.active{background:rgba(180,140,255,0.07);border-bottom-color:var(--accent);}
+.ex-icon{font-size:22px;margin-bottom:8px;}
+.ex-name{font-family:var(--display);font-size:14px;letter-spacing:0.12em;color:var(--accent);margin-bottom:4px;}
+.ex-teaser{font-size:8px;color:var(--text-dim);line-height:1.8;letter-spacing:0.04em;}
+
+.ex-expanded{
+  display:none;
+  border-top:1px solid var(--border);
+  background:rgba(0,0,0,0.3);
+}
+.ex-expanded.open{
+  display:grid;grid-template-columns:1fr 1fr;
+  animation:fadeUp 0.25s ease;
+}
+@keyframes fadeUp{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:translateY(0)}}
+
+.ex-sim-wrap{
+  border-right:1px solid var(--border);
+  position:relative;overflow:hidden;
+  min-height:280px;
+}
+#exCanvas{width:100%;height:100%;display:block;}
+.ex-info{padding:24px;overflow-y:auto;max-height:320px;}
+.ex-info::-webkit-scrollbar{width:3px;}
+.ex-info::-webkit-scrollbar-thumb{background:var(--border);}
+.ex-info-title{font-family:var(--display);font-size:22px;letter-spacing:0.1em;color:var(--accent);margin-bottom:3px;}
+.ex-info-sub{font-size:8px;color:var(--text-dim);letter-spacing:0.18em;margin-bottom:16px;}
+.ex-block{border:1px solid var(--border);padding:12px;margin-bottom:9px;}
+.ex-block-label{font-size:7.5px;color:var(--text-dim);letter-spacing:0.2em;margin-bottom:5px;}
+.ex-block-text{font-size:9px;color:var(--text);line-height:1.9;}
+.ex-fact{border:1px solid rgba(180,140,255,0.25);padding:12px;background:rgba(180,140,255,0.04);}
+.ex-fact .ex-block-label{color:var(--accent);}
+.ex-fact .ex-block-text{color:rgba(232,224,255,0.8);}
+
+/* ══════════════════════════════════════
+   TIER III
+══════════════════════════════════════ */
+.t3-layout{
+  display:grid;grid-template-columns:1fr 320px;
+  height:calc(100vh - 60px);
+}
+.t3-canvas-wrap{
+  position:relative;overflow:hidden;
+  border-right:1px solid var(--border);
+  cursor:crosshair;
+}
+#t3Canvas{width:100%;height:100%;display:block;}
+.t3-hint{
+  position:absolute;bottom:14px;left:50%;transform:translateX(-50%);
+  font-size:8px;color:var(--text-dim);letter-spacing:0.15em;
+  background:rgba(8,6,15,0.8);padding:5px 12px;border:1px solid var(--border);
+  pointer-events:none;white-space:nowrap;
+}
+
+.t3-controls{
+  padding:18px;overflow-y:auto;
+  display:flex;flex-direction:column;gap:12px;
+}
+.t3-controls::-webkit-scrollbar{width:3px;}
+.t3-controls::-webkit-scrollbar-thumb{background:var(--border);}
+
+.ctrl-sec{border:1px solid var(--border);padding:14px;}
+.ctrl-sec-title{font-size:8px;color:var(--accent);letter-spacing:0.2em;margin-bottom:12px;font-family:var(--display);font-size:12px;}
+.ctrl-row{display:flex;align-items:center;gap:10px;margin-bottom:8px;}
+.ctrl-lbl{font-size:8.5px;color:var(--text);width:110px;flex-shrink:0;}
+.ctrl-val{font-size:8.5px;color:var(--accent);width:40px;text-align:right;flex-shrink:0;}
+
+.preset-grid{display:grid;grid-template-columns:1fr 1fr;gap:4px;}
+.preset-btn{
+  padding:9px 6px;background:none;border:1px solid var(--border);
+  color:var(--text-dim);font-family:var(--mono);font-size:8px;
+  cursor:pointer;letter-spacing:0.06em;transition:all 0.2s;text-align:center;line-height:1.6;
+}
+.preset-btn:hover{background:var(--glow);color:var(--accent);border-color:var(--accent);}
+.preset-btn.active{background:var(--glow);color:var(--accent);border-color:var(--accent);}
+
+.t3-readout{display:grid;grid-template-columns:1fr 1fr;gap:6px;}
+.t3-rc{border:1px solid var(--border);padding:10px;}
+.t3-rc-label{font-size:7.5px;color:var(--text-dim);letter-spacing:0.15em;margin-bottom:3px;}
+.t3-rc-val{font-size:13px;color:var(--accent);}
+
+/* ══════════════════════════════════════
+   TIER IV
+══════════════════════════════════════ */
+.t4-layout{
+  display:grid;grid-template-columns:1fr 320px;
+  height:calc(100vh - 60px);
+}
+.t4-canvas-wrap{
+  position:relative;overflow:hidden;
+  border-right:1px solid var(--border);
+  cursor:crosshair;
+}
+#t4Canvas{width:100%;height:100%;display:block;}
+.t4-complexity{
+  position:absolute;top:14px;left:14px;right:14px;
+}
+.t4c-label{font-size:8px;letter-spacing:0.2em;color:var(--text-dim);margin-bottom:4px;display:flex;justify-content:space-between;}
+.t4c-label span{color:var(--accent);}
+.t4c-bar{height:8px;background:rgba(255,255,255,0.05);border:1px solid var(--border);overflow:hidden;}
+.t4c-fill{height:100%;transition:width 0.3s;}
+.t4-hint{
+  position:absolute;bottom:14px;left:50%;transform:translateX(-50%);
+  font-size:8px;color:var(--text-dim);letter-spacing:0.15em;
+  background:rgba(8,6,15,0.8);padding:5px 12px;border:1px solid var(--border);
+  pointer-events:none;white-space:nowrap;
+}
+
+.t4-controls{
+  padding:18px;overflow-y:auto;
+  display:flex;flex-direction:column;gap:12px;
+}
+.t4-controls::-webkit-scrollbar{width:3px;}
+.t4-controls::-webkit-scrollbar-thumb{background:var(--border);}
+
+.agent-type-list{display:flex;flex-direction:column;gap:4px;}
+.agent-row{
+  display:flex;align-items:center;gap:8px;
+  border:1px solid var(--border);padding:9px 11px;
+  cursor:pointer;transition:all 0.2s;
+}
+.agent-row:hover{background:var(--glow);}
+.agent-row.selected{border-color:var(--accent);background:var(--glow);}
+.agent-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;}
+.agent-name{font-size:9px;letter-spacing:0.08em;flex:1;}
+.agent-count{font-size:9px;color:var(--accent);}
+
+.action-row{display:grid;grid-template-columns:1fr 1fr;gap:4px;margin-top:4px;}
+.t4-act-btn{
+  padding:8px;background:none;border:1px solid var(--border);
+  color:var(--text-dim);font-family:var(--mono);font-size:8px;
+  cursor:pointer;letter-spacing:0.06em;transition:all 0.2s;text-align:center;
+}
+.t4-act-btn:hover{background:var(--glow);color:var(--accent);border-color:var(--accent);}
+.t4-act-btn.danger:hover{background:rgba(255,100,100,0.08);color:#ff6464;border-color:#ff6464;}
+
+.t4-log{border:1px solid var(--border);padding:12px;max-height:160px;overflow-y:auto;}
+.t4-log::-webkit-scrollbar{width:3px;}
+.t4-log::-webkit-scrollbar-thumb{background:var(--border);}
+.t4-log-title{font-size:7.5px;color:var(--text-dim);letter-spacing:0.2em;margin-bottom:8px;}
+.t4-log-entry{font-size:8px;color:var(--text-dim);line-height:1.9;border-bottom:1px solid rgba(180,140,255,0.04);padding-bottom:3px;margin-bottom:3px;}
+.t4-log-entry.emerge{color:var(--accent);}
+.t4-log-entry.warn{color:var(--accent2);}
+
+/* ── RESPONSIVE ── */
+@media(max-width:900px){
+  .t1-layout,.t3-layout,.t4-layout{grid-template-columns:1fr;grid-template-rows:55vh auto;height:auto;}
+  .t1-canvas-wrap,.t3-canvas-wrap,.t4-canvas-wrap{border-right:none;border-bottom:1px solid var(--border);}
+  .examples-grid{grid-template-columns:repeat(2,1fr);}
+  .ex-expanded.open{grid-template-columns:1fr;}
+  .ex-sim-wrap{border-right:none;border-bottom:1px solid var(--border);}
+}
+@media(max-width:600px){
+  .examples-grid{grid-template-columns:1fr;}
+  .ex-card{border-right:none;}
+}
+</style>
+</head>
+<body>
+
+<header class="header">
+  <div>
+    <div class="header-title">EMERGENCE SANDBOX</div>
+    <div class="header-sub">SIMPLE RULES · COMPLEX OUTPUT · NOBODY IN CHARGE</div>
+  </div>
+  <nav class="tier-nav">
+    <button class="tier-btn active" onclick="setTier(1)">TIER I</button>
+    <button class="tier-btn" onclick="setTier(2)">TIER II</button>
+    <button class="tier-btn" onclick="setTier(3)">TIER III</button>
+    <button class="tier-btn" onclick="setTier(4)">TIER IV</button>
+  </nav>
+  <button class="void-btn" id="voidBtn" onclick="toggleVoid()">☽ VOID</button>
+</header>
+
+<!-- ══ TIER I ══ -->
+<div class="tier active" id="tier1">
+  <div class="t1-layout">
+    <div class="t1-canvas-wrap" id="t1wrap">
+      <canvas id="t1Canvas"></canvas>
+      <div class="t1-rules-overlay">
+        <div>EACH AGENT FOLLOWS THREE RULES:</div>
+        <div class="rule">① SEPARATION — avoid crowding neighbors</div>
+        <div class="rule">② ALIGNMENT — match neighbors' direction</div>
+        <div class="rule">③ COHESION — move toward the group center</div>
+        <div style="margin-top:6px;color:rgba(232,224,255,0.25);font-size:7.5px;">NO LEADER. NO DESIGN. PURE EMERGENCE.</div>
+      </div>
+      <div class="t1-hint">DRAG CURSOR TO DISTURB THE FLOCK</div>
+    </div>
+    <div class="t1-panel">
+      <div>
+        <div class="t1-intro-title">NOBODY<br>DESIGNED<br>THIS.</div>
+        <div class="t1-intro-sub">
+          Each point on screen follows<br>
+          three simple rules.<br><br>
+          No point knows what the<br>
+          whole is doing.<br><br>
+          No point was told to flock.<br><br>
+          The flock is not a thing.<br>
+          It is a behavior that<br>
+          emerges from rules.<br><br>
+          Your brain works the same way.<br>
+          So does your immune system.<br>
+          So does every market on Earth.
+        </div>
+      </div>
+      <div class="rule-panel">
+        <div class="rp-title">RULE WEIGHTS</div>
+        <div class="rp-row">
+          <div class="rp-label">SEPARATION</div>
+          <input type="range" id="r1Sep" min="0" max="3" value="1.5" step="0.1" oninput="updateT1Rules()">
+          <div class="rp-val" id="v1Sep">1.5</div>
+        </div>
+        <div class="rp-row">
+          <div class="rp-label">ALIGNMENT</div>
+          <input type="range" id="r1Ali" min="0" max="3" value="1.0" step="0.1" oninput="updateT1Rules()">
+          <div class="rp-val" id="v1Ali">1.0</div>
+        </div>
+        <div class="rp-row">
+          <div class="rp-label">COHESION</div>
+          <input type="range" id="r1Coh" min="0" max="3" value="0.8" step="0.1" oninput="updateT1Rules()">
+          <div class="rp-val" id="v1Coh">0.8</div>
+        </div>
+        <div class="rp-row">
+          <div class="rp-label">AGENTS</div>
+          <input type="range" id="r1Cnt" min="20" max="400" value="180" step="10" oninput="updateT1Rules()">
+          <div class="rp-val" id="v1Cnt">180</div>
+        </div>
+        <div class="rp-row">
+          <div class="rp-label">SPEED</div>
+          <input type="range" id="r1Spd" min="0.5" max="4" value="1.8" step="0.1" oninput="updateT1Rules()">
+          <div class="rp-val" id="v1Spd">1.8</div>
+        </div>
+        <div class="rp-row">
+          <div class="rp-label">PERCEPTION</div>
+          <input type="range" id="r1Per" min="20" max="120" value="55" step="5" oninput="updateT1Rules()">
+          <div class="rp-val" id="v1Per">55</div>
+        </div>
+      </div>
+      <div class="complexity-meter">
+        <div class="cm-title">COMPLEXITY METER</div>
+        <div class="cm-val" id="cmVal">—</div>
+        <div class="cm-bar-bg"><div class="cm-bar-fill" id="cmFill" style="width:0%"></div></div>
+        <div class="cm-label" id="cmLabel">The edge between order and chaos is where emergence lives.</div>
+      </div>
+      <div class="t1-agent-count">
+        <div class="t1-stat">ACTIVE AGENTS: <span id="t1AgentCount">180</span></div>
+        <div class="t1-stat">AVG NEIGHBORS: <span id="t1AvgNeighbors">—</span></div>
+        <div class="t1-stat">CLUSTERS: <span id="t1Clusters">—</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ TIER II ══ -->
+<div class="tier" id="tier2">
+  <div class="t2-headline">EMERGENCE IN NATURE</div>
+  <div class="t2-sub">SELECT ANY EXAMPLE · LIVE SIMULATION RUNS BELOW</div>
+  <div class="examples-grid" id="exGrid"></div>
+  <div class="ex-expanded" id="exExpanded">
+    <div class="ex-sim-wrap"><canvas id="exCanvas"></canvas></div>
+    <div class="ex-info" id="exInfo"></div>
+  </div>
+</div>
+
+<!-- ══ TIER III ══ -->
+<div class="tier" id="tier3">
+  <div class="t3-layout">
+    <div class="t3-canvas-wrap" id="t3wrap">
+      <canvas id="t3Canvas"></canvas>
+      <div class="t3-hint">DRAG CURSOR TO INTERACT</div>
+    </div>
+    <div class="t3-controls">
+      <div class="ctrl-sec">
+        <div class="ctrl-sec-title">BOID RULES</div>
+        <div class="ctrl-row">
+          <div class="ctrl-lbl">SEPARATION</div>
+          <input type="range" id="t3Sep" min="0" max="4" value="1.5" step="0.1" oninput="updateT3()">
+          <div class="ctrl-val" id="t3SepV">1.5</div>
+        </div>
+        <div class="ctrl-row">
+          <div class="ctrl-lbl">ALIGNMENT</div>
+          <input type="range" id="t3Ali" min="0" max="4" value="1.0" step="0.1" oninput="updateT3()">
+          <div class="ctrl-val" id="t3AliV">1.0</div>
+        </div>
+        <div class="ctrl-row">
+          <div class="ctrl-lbl">COHESION</div>
+          <input type="range" id="t3Coh" min="0" max="4" value="0.8" step="0.1" oninput="updateT3()">
+          <div class="ctrl-val" id="t3CohV">0.8</div>
+        </div>
+        <div class="ctrl-row">
+          <div class="ctrl-lbl">SPEED</div>
+          <input type="range" id="t3Spd" min="0.3" max="5" value="1.8" step="0.1" oninput="updateT3()">
+          <div class="ctrl-val" id="t3SpdV">1.8</div>
+        </div>
+        <div class="ctrl-row">
+          <div class="ctrl-lbl">PERCEPTION</div>
+          <input type="range" id="t3Per" min="15" max="150" value="55" step="5" oninput="updateT3()">
+          <div class="ctrl-val" id="t3PerV">55</div>
+        </div>
+        <div class="ctrl-row">
+          <div class="ctrl-lbl">AGENTS</div>
+          <input type="range" id="t3Cnt" min="10" max="500" value="200" step="10" oninput="updateT3()">
+          <div class="ctrl-val" id="t3CntV">200</div>
+        </div>
+      </div>
+      <div class="ctrl-sec">
+        <div class="ctrl-sec-title">PRESETS</div>
+        <div class="preset-grid" id="presetGrid"></div>
+      </div>
+      <div class="ctrl-sec">
+        <div class="ctrl-sec-title">BEHAVIOR NOTE</div>
+        <div style="font-size:8.5px;color:var(--text-dim);line-height:1.9;" id="t3BehaviorNote">
+          Default flocking. Three rules in balance. Notice how groups form, split, and reform without any coordination signal.
+        </div>
+      </div>
+      <div class="t3-readout">
+        <div class="t3-rc"><div class="t3-rc-label">COMPLEXITY</div><div class="t3-rc-val" id="t3Complexity">—</div></div>
+        <div class="t3-rc"><div class="t3-rc-label">AVG GROUP</div><div class="t3-rc-val" id="t3AvgGroup">—</div></div>
+        <div class="t3-rc"><div class="t3-rc-label">COHERENCE</div><div class="t3-rc-val" id="t3Coherence">—</div></div>
+        <div class="t3-rc"><div class="t3-rc-label">ENTROPY</div><div class="t3-rc-val" id="t3Entropy">—</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ TIER IV ══ -->
+<div class="tier" id="tier4">
+  <div class="t4-layout">
+    <div class="t4-canvas-wrap" id="t4wrap">
+      <canvas id="t4Canvas"></canvas>
+      <div class="t4-complexity">
+        <div class="t4c-label">SYSTEM COMPLEXITY <span id="t4CmplxVal">—</span></div>
+        <div class="t4c-bar"><div class="t4c-fill" id="t4CmplxFill" style="width:0%"></div></div>
+      </div>
+      <div class="t4-hint">CLICK CANVAS TO PLACE AGENTS · DRAG TO DISTURB</div>
+    </div>
+    <div class="t4-controls">
+      <div class="ctrl-sec">
+        <div class="ctrl-sec-title">AGENT TYPES</div>
+        <div class="agent-type-list" id="agentTypeList"></div>
+      </div>
+      <div class="ctrl-sec">
+        <div class="ctrl-sec-title">ACTIONS</div>
+        <div class="action-row">
+          <button class="t4-act-btn" onclick="t4Spawn()">+ SPAWN</button>
+          <button class="t4-act-btn" onclick="t4AddFood()">+ FOOD</button>
+          <button class="t4-act-btn" onclick="t4Shockwave()">SHOCKWAVE</button>
+          <button class="t4-act-btn danger" onclick="t4Clear()">CLEAR ALL</button>
+        </div>
+      </div>
+      <div class="ctrl-sec">
+        <div class="ctrl-sec-title">SELECTED TYPE RULES</div>
+        <div class="ctrl-row">
+          <div class="ctrl-lbl">SEPARATION</div>
+          <input type="range" id="t4Sep" min="0" max="4" value="1.5" step="0.1" oninput="updateT4AgentRules()">
+          <div class="ctrl-val" id="t4SepV">1.5</div>
+        </div>
+        <div class="ctrl-row">
+          <div class="ctrl-lbl">ALIGNMENT</div>
+          <input type="range" id="t4Ali" min="0" max="4" value="1.0" step="0.1" oninput="updateT4AgentRules()">
+          <div class="ctrl-val" id="t4AliV">1.0</div>
+        </div>
+        <div class="ctrl-row">
+          <div class="ctrl-lbl">COHESION</div>
+          <input type="range" id="t4Coh" min="0" max="4" value="0.8" step="0.1" oninput="updateT4AgentRules()">
+          <div class="ctrl-val" id="t4CohV">0.8</div>
+        </div>
+        <div class="ctrl-row">
+          <div class="ctrl-lbl">FLEE PREDATOR</div>
+          <input type="range" id="t4Flee" min="0" max="4" value="0" step="0.1" oninput="updateT4AgentRules()">
+          <div class="ctrl-val" id="t4FleeV">0.0</div>
+        </div>
+        <div class="ctrl-row">
+          <div class="ctrl-lbl">CHASE PREY</div>
+          <input type="range" id="t4Chase" min="0" max="4" value="0" step="0.1" oninput="updateT4AgentRules()">
+          <div class="ctrl-val" id="t4ChaseV">0.0</div>
+        </div>
+      </div>
+      <div class="t4-log">
+        <div class="t4-log-title">EMERGENCE LOG</div>
+        <div id="t4LogEntries"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ============================================================
+//  SHARED BOID ENGINE
+// ============================================================
+class Boid{
+  constructor(x,y,color,rules){
+    this.x=x; this.y=y;
+    this.vx=(Math.random()-0.5)*2;
+    this.vy=(Math.random()-0.5)*2;
+    this.color=color||'#b48cff';
+    this.rules=rules||{sep:1.5,ali:1.0,coh:0.8,spd:1.8,per:55,flee:0,chase:0,type:'flock'};
+    this.trail=[];
+    this.age=0;
+  }
+  update(boids,W,H,mouse,obstacles){
+    const r=this.rules;
+    let sx=0,sy=0,ax=0,ay=0,cx2=0,cy2=0;
+    let ns=0,na=0,nc=0;
+    let fx=0,fy=0,chx=0,chy=0;
+    let nflee=0,nchase=0;
+
+    for(const b of boids){
+      if(b===this) continue;
+      const dx=b.x-this.x, dy=b.y-this.y;
+      const dist=Math.sqrt(dx*dx+dy*dy);
+      if(dist<1) continue;
+      if(dist<r.per){
+        // Separation
+        if(dist<r.per*0.35){
+          sx-=dx/dist; sy-=dy/dist; ns++;
+        }
+        // Alignment
+        if(dist<r.per*0.8){
+          ax+=b.vx; ay+=b.vy; na++;
+        }
+        // Cohesion
+        cx2+=b.x; cy2+=b.y; nc++;
+        // Predator/Prey
+        if(r.flee>0&&b.rules.type==='predator'){
+          fx-=dx/(dist*dist)*200; fy-=dy/(dist*dist)*200; nflee++;
+        }
+        if(r.chase>0&&b.rules.type==='prey'){
+          chx+=dx/dist; chy+=dy/dist; nchase++;
+        }
+      }
+    }
+
+    if(ns>0){this.vx+=sx/ns*r.sep; this.vy+=sy/ns*r.sep;}
+    if(na>0){this.vx+=(ax/na-this.vx)*0.05*r.ali; this.vy+=(ay/na-this.vy)*0.05*r.ali;}
+    if(nc>0){this.vx+=(cx2/nc-this.x)*0.001*r.coh; this.vy+=(cy2/nc-this.y)*0.001*r.coh;}
+    if(nflee>0){this.vx+=fx/nflee*r.flee*0.5; this.vy+=fy/nflee*r.flee*0.5;}
+    if(nchase>0){this.vx+=chx/nchase*r.chase*0.3; this.vy+=chy/nchase*r.chase*0.3;}
+
+    // Mouse repulsion
+    if(mouse&&mouse.active){
+      const dx=this.x-mouse.x, dy=this.y-mouse.y;
+      const d=Math.sqrt(dx*dx+dy*dy);
+      if(d<mouse.r){
+        this.vx+=dx/d*(mouse.r-d)*0.08;
+        this.vy+=dy/d*(mouse.r-d)*0.08;
+      }
+    }
+
+    // Speed clamp
+    const spd=Math.sqrt(this.vx*this.vx+this.vy*this.vy);
+    if(spd>r.spd){this.vx=this.vx/spd*r.spd; this.vy=this.vy/spd*r.spd;}
+    if(spd<r.spd*0.3){this.vx+=Math.random()*0.4-0.2; this.vy+=Math.random()*0.4-0.2;}
+
+    // Trail
+    this.trail.push({x:this.x,y:this.y});
+    if(this.trail.length>8) this.trail.shift();
+
+    this.x+=this.vx; this.y+=this.vy;
+
+    // Wrap
+    if(this.x<0) this.x+=W; if(this.x>W) this.x-=W;
+    if(this.y<0) this.y+=H; if(this.y>H) this.y-=H;
+    this.age++;
+  }
+  draw(ctx,trailOn){
+    if(trailOn&&this.trail.length>2){
+      ctx.beginPath();
+      ctx.moveTo(this.trail[0].x,this.trail[0].y);
+      for(let i=1;i<this.trail.length;i++) ctx.lineTo(this.trail[i].x,this.trail[i].y);
+      ctx.strokeStyle=this.color+'22'; ctx.lineWidth=1; ctx.stroke();
+    }
+    const angle=Math.atan2(this.vy,this.vx);
+    const size=this.rules.type==='predator'?7:4;
+    ctx.save();
+    ctx.translate(this.x,this.y);
+    ctx.rotate(angle);
+    ctx.beginPath();
+    ctx.moveTo(size*1.8,0);
+    ctx.lineTo(-size,size*0.6);
+    ctx.lineTo(-size*0.5,0);
+    ctx.lineTo(-size,-size*0.6);
+    ctx.closePath();
+    ctx.fillStyle=this.color;
+    ctx.shadowColor=this.color; ctx.shadowBlur=4;
+    ctx.fill(); ctx.shadowBlur=0;
+    ctx.restore();
+  }
+}
+
+// Measure complexity: normalized variance of neighbor counts
+function measureComplexity(boids,W,H){
+  if(boids.length<5) return 0;
+  const counts=boids.map(b=>{
+    let n=0;
+    for(const o of boids){
+      if(o===b) continue;
+      const dx=o.x-b.x,dy=o.y-b.y;
+      if(dx*dx+dy*dy<b.rules.per*b.rules.per) n++;
+    }
+    return n;
+  });
+  const mean=counts.reduce((a,b)=>a+b,0)/counts.length;
+  const variance=counts.reduce((a,b)=>a+(b-mean)*(b-mean),0)/counts.length;
+  // Normalize to 0-100
+  const raw=Math.min(100,variance*2.5);
+  // Penalize extremes — complexity peaks in the middle
+  const orderPenalty=mean<1?raw*mean:raw;
+  return Math.min(100,orderPenalty);
+}
+
+function getComplexityLabel(v){
+  if(v<15) return 'PURE CHAOS — no coherent structure';
+  if(v<30) return 'LOW — loose random motion';
+  if(v<50) return 'BUILDING — loose groups forming';
+  if(v<68) return 'EMERGENT — complex patterns active';
+  if(v<82) return 'HIGH EMERGENCE — self-organizing';
+  return 'PEAK EMERGENCE — edge of order/chaos';
+}
+
+function getComplexityColor(v){
+  if(v<25) return '#ff4444';
+  if(v<50) return '#ffaa44';
+  if(v<75) return '#ffee44';
+  return '#44ffaa';
+}
+
+// ============================================================
+//  TIER I
+// ============================================================
+let t1cvs,t1ctx,t1raf;
+let t1Boids=[];
+let t1Mouse={x:0,y:0,active:false,r:80};
+let t1Rules={sep:1.5,ali:1.0,coh:0.8,spd:1.8,per:55,type:'flock'};
+let t1Count=180;
+
+function initT1(){
+  t1cvs=document.getElementById('t1Canvas');
+  t1ctx=t1cvs.getContext('2d');
+  resizeT1();
+  window.addEventListener('resize',resizeT1);
+  spawnT1Boids();
+
+  const wrap=document.getElementById('t1wrap');
+  wrap.addEventListener('mousemove',e=>{
+    const r=t1cvs.getBoundingClientRect();
+    t1Mouse.x=e.clientX-r.left; t1Mouse.y=e.clientY-r.top; t1Mouse.active=true;
+  });
+  wrap.addEventListener('mouseleave',()=>t1Mouse.active=false);
+  wrap.addEventListener('touchmove',e=>{
+    e.preventDefault();
+    const r=t1cvs.getBoundingClientRect();
+    t1Mouse.x=e.touches[0].clientX-r.left; t1Mouse.y=e.touches[0].clientY-r.top; t1Mouse.active=true;
+  },{passive:false});
+  wrap.addEventListener('touchend',()=>t1Mouse.active=false);
+
+  if(!t1raf) animateT1();
+}
+
+function resizeT1(){
+  if(!t1cvs) return;
+  const p=t1cvs.parentElement;
+  t1cvs.width=p.offsetWidth*devicePixelRatio; t1cvs.height=p.offsetHeight*devicePixelRatio;
+  t1ctx.scale(devicePixelRatio,devicePixelRatio);
+}
+
+function spawnT1Boids(){
+  const W=t1cvs.offsetWidth||800,H=t1cvs.offsetHeight||600;
+  t1Boids=[];
+  for(let i=0;i<t1Count;i++){
+    const hue=200+i/t1Count*120;
+    t1Boids.push(new Boid(Math.random()*W,Math.random()*H,`hsl(${hue},70%,65%)`,{...t1Rules}));
+  }
+}
+
+function updateT1Rules(){
+  t1Rules.sep=parseFloat(document.getElementById('r1Sep').value);
+  t1Rules.ali=parseFloat(document.getElementById('r1Ali').value);
+  t1Rules.coh=parseFloat(document.getElementById('r1Coh').value);
+  t1Rules.spd=parseFloat(document.getElementById('r1Spd').value);
+  t1Rules.per=parseFloat(document.getElementById('r1Per').value);
+  const newCnt=parseInt(document.getElementById('r1Cnt').value);
+
+  document.getElementById('v1Sep').textContent=t1Rules.sep.toFixed(1);
+  document.getElementById('v1Ali').textContent=t1Rules.ali.toFixed(1);
+  document.getElementById('v1Coh').textContent=t1Rules.coh.toFixed(1);
+  document.getElementById('v1Spd').textContent=t1Rules.spd.toFixed(1);
+  document.getElementById('v1Per').textContent=t1Rules.per;
+  document.getElementById('v1Cnt').textContent=newCnt;
+
+  if(newCnt!==t1Count){
+    t1Count=newCnt;
+    spawnT1Boids();
+  }else{
+    t1Boids.forEach(b=>Object.assign(b.rules,t1Rules));
+  }
+}
+
+let t1Frame=0;
+function drawT1(){
+  if(!t1ctx) return;
+  const W=t1cvs.offsetWidth,H=t1cvs.offsetHeight;
+  if(!W||!H) return;
+
+  // Fade trail
+  t1ctx.fillStyle='rgba(8,6,15,0.18)';
+  t1ctx.fillRect(0,0,W,H);
+
+  t1Boids.forEach(b=>b.update(t1Boids,W,H,t1Mouse));
+  t1Boids.forEach(b=>b.draw(t1ctx,true));
+
+  // Mouse glow
+  if(t1Mouse.active){
+    const mg=t1ctx.createRadialGradient(t1Mouse.x,t1Mouse.y,0,t1Mouse.x,t1Mouse.y,t1Mouse.r);
+    mg.addColorStop(0,'rgba(255,140,220,0.12)');
+    mg.addColorStop(1,'transparent');
+    t1ctx.fillStyle=mg; t1ctx.fillRect(0,0,W,H);
+  }
+
+  // Update complexity every 30 frames
+  t1Frame++;
+  if(t1Frame%30===0){
+    const cmplx=measureComplexity(t1Boids,W,H);
+    const col=getComplexityColor(cmplx);
+    document.getElementById('cmVal').textContent=cmplx.toFixed(0);
+    document.getElementById('cmFill').style.width=cmplx+'%';
+    document.getElementById('cmFill').style.background=col;
+    document.getElementById('cmFill').style.boxShadow=`0 0 8px ${col}`;
+    document.getElementById('cmLabel').textContent=getComplexityLabel(cmplx);
+    document.getElementById('t1AgentCount').textContent=t1Boids.length;
+    // Avg neighbors
+    let totalN=0;
+    t1Boids.slice(0,30).forEach(b=>{
+      t1Boids.forEach(o=>{
+        if(o===b) return;
+        const dx=o.x-b.x,dy=o.y-b.y;
+        if(dx*dx+dy*dy<b.rules.per*b.rules.per) totalN++;
+      });
+    });
+    document.getElementById('t1AvgNeighbors').textContent=(totalN/Math.min(30,t1Boids.length)).toFixed(1);
+  }
+}
+
+function animateT1(){
+  drawT1();
+  t1raf=requestAnimationFrame(animateT1);
+}
+
+// ============================================================
+//  TIER II EXAMPLES
+// ============================================================
+const EXAMPLES=[
+  {id:'murmuration',icon:'🐦',name:'MURMURATION',
+   teaser:'Thousands of starlings. Zero choreography.',
+   what:'Flocks of European starlings perform fluid, shape-shifting aerial displays involving hundreds of thousands of birds. Each bird watches seven nearest neighbors. Nothing else.',
+   rules:'Each bird: match speed with neighbors, avoid collision, stay close. Seven neighbors watched. No bird knows the shape of the whole.',
+   fact:'The murmuration responds to a predator in under 100 milliseconds — faster than individual reaction time. The flock as a whole is more agile than any bird in it.',
+   sim:'murmuration'},
+  {id:'ants',icon:'🐜',name:'ANT COLONIES',
+   teaser:'No foreman. No blueprint. Perfect logistics.',
+   what:'An ant colony finds the shortest path to food, maintains temperature-controlled chambers, farms fungi, and manages waste — all without any ant having the overall plan.',
+   rules:'Ants follow pheromone trails. Stronger trails attract more ants. More ants reinforce stronger trails. Short paths get reinforced faster. The shortest route wins without any ant knowing what a route is.',
+   fact:'A colony of army ants, with no leader and no plan, can build a bridge of living bodies to the exact specifications needed to cross a gap. The bridge self-assembles from simple touch responses.',
+   sim:'ants'},
+  {id:'slimemold',icon:'🟡',name:'SLIME MOLD',
+   teaser:'No brain. Solves mazes. Redesigns Tokyo\'s rail network.',
+   what:'Physarum polycephalum is a single-celled organism with no nervous system. It routinely solves maze problems and optimizes networks that took human engineers decades to design.',
+   rules:'The mold extends tubes toward nutrients. Tubes carrying more flow grow thicker. Tubes carrying less flow thin and disappear. Optimal network structure emerges from those two rules.',
+   fact:'Scientists placed oat flakes matching Tokyo\'s major cities on a map. The slime mold grew a network matching the Tokyo rail system — including the redundant backup connections engineers built for earthquake resilience.',
+   sim:'slimemold'},
+  {id:'gameoflife',icon:'⬛',name:"CONWAY'S GAME OF LIFE",
+   teaser:'Four rules. Infinite complexity.',
+   what:'A mathematical simulation by John Conway. A grid of cells. Each cell is alive or dead. Four rules determine the next state. What emerges from those four rules is undecidable — Turing complete. Anything computable can be computed in it.',
+   rules:'1. Live cell with <2 neighbors dies (underpopulation). 2. Live cell with 2–3 neighbors lives. 3. Live cell with >3 neighbors dies (overcrowding). 4. Dead cell with exactly 3 neighbors becomes alive (reproduction).',
+   fact:'The Game of Life is Turing complete — meaning a sufficiently large board could theoretically simulate any computer program ever written, including itself. Four rules. Unlimited complexity.',
+   sim:'life'},
+  {id:'neurons',icon:'⚡',name:'NEURAL FIRING',
+   teaser:'Individual signals with no meaning become thought.',
+   what:'A single neuron fires or does not. It has no idea what it means. It has no concept of thought, memory, or perception. 86 billion neurons following simple electrochemical rules produce consciousness.',
+   rules:'If input exceeds threshold, fire. If not, do not fire. Pass the signal forward. Strengthen frequently used pathways. Weaken unused ones.',
+   fact:'The human brain has roughly 100 trillion synaptic connections. It consumes 20% of the body\'s energy despite being 2% of its weight. The thought you are having right now emerged from neurons that individually know nothing.',
+   sim:'neurons'},
+  {id:'markets',icon:'📈',name:'MARKET PRICES',
+   teaser:'Millions of strangers. One number. Nobody set it.',
+   what:'A market price for any commodity reflects the collective knowledge, preferences, and predictions of millions of independent actors — none of whom knows what the others know.',
+   rules:'Buyers bid what a thing is worth to them. Sellers ask what satisfies them. Transactions occur where bids and asks meet. Prices move toward equilibrium without any price-setter.',
+   fact:'The price of a stock at any moment encodes information from thousands of researchers, algorithms, insiders, and guesses. No single agent could compute it. Millions of self-interested decisions produce a number more accurate than any individual could generate.',
+   sim:'markets'},
+];
+
+let exCvs,exCtx,exRaf;
+let exActive=null;
+let exBoids=[];
+let exTime=0;
+let exCells=[];
+let exAnts=[];
+let exPheromones=[];
+let exMold=[];
+let exNeurons2=[];
+let exMarket=[];
+
+function initExCanvas(){
+  exCvs=document.getElementById('exCanvas');
+  exCtx=exCvs.getContext('2d');
+  resizeEx();
+  window.addEventListener('resize',resizeEx);
+  if(!exRaf) animateEx();
+}
+
+function resizeEx(){
+  if(!exCvs) return;
+  const p=exCvs.parentElement;
+  exCvs.width=p.offsetWidth*devicePixelRatio; exCvs.height=p.offsetHeight*devicePixelRatio;
+  exCtx.scale(devicePixelRatio,devicePixelRatio);
+}
+
+function buildExGrid(){
+  const grid=document.getElementById('exGrid');
+  grid.innerHTML='';
+  EXAMPLES.forEach(ex=>{
+    const d=document.createElement('div');
+    d.className='ex-card'; d.id='exc-'+ex.id;
+    d.innerHTML=`<div class="ex-icon">${ex.icon}</div><div class="ex-name">${ex.name}</div><div class="ex-teaser">${ex.teaser}</div>`;
+    d.addEventListener('click',()=>selectEx(ex.id));
+    grid.appendChild(d);
+  });
+}
+
+function selectEx(id){
+  document.querySelectorAll('.ex-card').forEach(c=>c.classList.remove('active'));
+  const c=document.getElementById('exc-'+id); if(c) c.classList.add('active');
+  exActive=id;
+  const ex=EXAMPLES.find(x=>x.id===id); if(!ex) return;
+  const panel=document.getElementById('exExpanded');
+  panel.classList.add('open');
+  document.getElementById('exInfo').innerHTML=`
+    <div class="ex-info-title">${ex.name}</div>
+    <div class="ex-info-sub">${ex.icon} EMERGENCE EXAMPLE</div>
+    <div class="ex-block"><div class="ex-block-label">WHAT IT IS</div><div class="ex-block-text">${ex.what}</div></div>
+    <div class="ex-block"><div class="ex-block-label">THE RULES</div><div class="ex-block-text">${ex.rules}</div></div>
+    <div class="ex-fact"><div class="ex-block-label">THE FACT THAT STOPS YOU</div><div class="ex-block-text">${ex.fact}</div></div>`;
+  initExSim(id);
+  setTimeout(()=>panel.scrollIntoView({behavior:'smooth',block:'nearest'}),100);
+}
+
+function initExSim(id){
+  exBoids=[];exCells=[];exAnts=[];exPheromones=[];exMold=[];exNeurons2=[];exMarket=[];
+  exTime=0;
+  const W=exCvs.offsetWidth||500,H=exCvs.offsetHeight||280;
+  if(id==='murmuration'){
+    for(let i=0;i<120;i++){
+      const h=200+i/120*80;
+      const b=new Boid(Math.random()*W,Math.random()*H,`hsl(${h},65%,70%)`,{sep:1.8,ali:1.3,coh:0.7,spd:2.2,per:50,type:'flock'});
+      b.vx=(Math.random()-0.5)*3; b.vy=(Math.random()-0.5)*3;
+      exBoids.push(b);
+    }
+  } else if(id==='ants'){
+    // Ant sim — pheromone grid
+    const cols=Math.floor(W/6), rows=Math.floor(H/6);
+    exPheromones=Array.from({length:rows},()=>Array(cols).fill(0));
+    for(let i=0;i<60;i++){
+      exAnts.push({x:W/2+Math.random()*20-10,y:H/2+Math.random()*20-10,
+        vx:(Math.random()-0.5)*2,vy:(Math.random()-0.5)*2,
+        hasFood:false,color:'#ffcc44'});
+    }
+    // Food sources
+    exMold=[
+      {x:W*0.15,y:H*0.2,type:'food'},{x:W*0.8,y:H*0.7,type:'food'},
+      {x:W*0.5,y:H*0.1,type:'food'},{x:W*0.2,y:H*0.8,type:'food'},
+    ];
+  } else if(id==='slimemold'){
+    // Simple network growth sim
+    const nodes=8;
+    for(let i=0;i<nodes;i++){
+      const a=i/nodes*Math.PI*2;
+      exMold.push({x:W/2+Math.cos(a)*W*0.3,y:H/2+Math.sin(a)*H*0.3,
+        strength:0.5+Math.random()*0.5,
+        connections:[]});
+    }
+    // Central node (food source)
+    exMold.push({x:W/2,y:H/2,strength:1,connections:[]});
+    // Random connections
+    for(let i=0;i<nodes;i++){
+      const j=(i+1)%nodes;
+      exMold[i].connections.push(j);
+      if(Math.random()>0.5) exMold[i].connections.push(nodes);
+    }
+  } else if(id==='gameoflife'){
+    // Conway's Game of Life
+    const cols=Math.floor(W/8), rows=Math.floor(H/8);
+    exCells=Array.from({length:rows},()=>Array.from({length:cols},()=>Math.random()<0.28?1:0));
+    exMold=[{cols,rows,cellW:W/cols,cellH:H/rows}];
+  } else if(id==='neurons'){
+    const N=50;
+    for(let i=0;i<N;i++){
+      exNeurons2.push({
+        x:Math.random()*W,y:Math.random()*H,
+        potential:Math.random(),threshold:0.55+Math.random()*0.2,
+        firing:false,fireTimer:0,
+        connections:[],
+        color:`hsl(${190+Math.random()*60},70%,65%)`
+      });
+    }
+    // Wire up connections
+    exNeurons2.forEach((n,i)=>{
+      const sorted=[...exNeurons2].filter((_,j)=>j!==i)
+        .sort((a,b)=>{
+          const da=(a.x-n.x)**2+(a.y-n.y)**2;
+          const db=(b.x-n.x)**2+(b.y-n.y)**2;
+          return da-db;
+        }).slice(0,3);
+      n.connections=sorted.map(s=>exNeurons2.indexOf(s));
+    });
+  } else if(id==='markets'){
+    // Market price simulation
+    for(let i=0;i<80;i++){
+      exMarket.push({
+        type:Math.random()<0.5?'buyer':'seller',
+        value:30+Math.random()*140,
+        x:Math.random()*W,y:Math.random()*H,
+        color:Math.random()<0.5?'rgba(100,255,150,0.7)':'rgba(255,100,100,0.7)'
+      });
+    }
+    exMold=[{price:80,history:[80],vol:0}];
+  }
+}
+
+let lifeFrame=0;
+function drawEx(){
+  if(!exCtx||!exActive) return;
+  const W=exCvs.offsetWidth,H=exCvs.offsetHeight;
+  if(!W||!H) return;
+  const id=exActive;
+
+  if(id==='gameoflife'){
+    // Clear each frame for Life
+    exCtx.fillStyle='rgba(8,6,15,1)'; exCtx.fillRect(0,0,W,H);
+  } else {
+    exCtx.fillStyle='rgba(8,6,15,0.2)'; exCtx.fillRect(0,0,W,H);
+  }
+
+  if(id==='murmuration'){
+    exBoids.forEach(b=>b.update(exBoids,W,H,null));
+    exBoids.forEach(b=>b.draw(exCtx,true));
+  } else if(id==='ants'){
+    const grid=exMold;
+    const cols=Math.floor(W/6),rows=Math.floor(H/6);
+    // Decay pheromones
+    for(let r=0;r<rows;r++) for(let c=0;c<cols;c++) exPheromones[r][c]*=0.993;
+    // Draw pheromones
+    for(let r=0;r<rows;r++) for(let c=0;c<cols;c++){
+      const p=exPheromones[r][c];
+      if(p>0.01){
+        exCtx.fillStyle=`rgba(255,200,80,${Math.min(0.5,p*0.6)})`;
+        exCtx.fillRect(c*6,r*6,6,6);
+      }
+    }
+    // Food sources
+    grid.forEach(f=>{
+      exCtx.beginPath(); exCtx.arc(f.x,f.y,8,0,Math.PI*2);
+      exCtx.fillStyle='rgba(100,255,100,0.7)'; exCtx.fill();
+      exCtx.shadowColor='#64ff64'; exCtx.shadowBlur=10; exCtx.fill(); exCtx.shadowBlur=0;
+    });
+    // Nest
+    exCtx.beginPath(); exCtx.arc(W/2,H/2,12,0,Math.PI*2);
+    exCtx.fillStyle='rgba(255,200,80,0.5)'; exCtx.fill();
+    // Ants
+    exAnts.forEach(ant=>{
+      // Find nearest food/nest
+      const targets=ant.hasFood?[{x:W/2,y:H/2}]:grid;
+      let nearestT=null,nearestD=99999;
+      targets.forEach(t=>{const d=Math.hypot(t.x-ant.x,t.y-ant.y);if(d<nearestD){nearestD=d;nearestT=t;}});
+      if(nearestT){
+        ant.vx+=(nearestT.x-ant.x)*0.004;
+        ant.vy+=(nearestT.y-ant.y)*0.004;
+        if(nearestD<15){
+          if(!ant.hasFood&&nearestT.type==='food') ant.hasFood=true;
+          else if(ant.hasFood) ant.hasFood=false;
+        }
+      }
+      // Pheromone following
+      const col=Math.min(cols-1,Math.max(0,Math.floor(ant.x/6)));
+      const row=Math.min(rows-1,Math.max(0,Math.floor(ant.y/6)));
+      if(ant.hasFood) exPheromones[row][col]=Math.min(1,exPheromones[row][col]+0.04);
+      // Wander
+      ant.vx+=(Math.random()-0.5)*0.3;
+      ant.vy+=(Math.random()-0.5)*0.3;
+      const spd=Math.hypot(ant.vx,ant.vy);
+      if(spd>2){ant.vx=ant.vx/spd*2;ant.vy=ant.vy/spd*2;}
+      ant.x+=ant.vx; ant.y+=ant.vy;
+      if(ant.x<0)ant.x=W;if(ant.x>W)ant.x=0;
+      if(ant.y<0)ant.y=H;if(ant.y>H)ant.y=0;
+      exCtx.beginPath(); exCtx.arc(ant.x,ant.y,2.5,0,Math.PI*2);
+      exCtx.fillStyle=ant.hasFood?'#64ff64':'#ffcc44'; exCtx.fill();
+    });
+  } else if(id==='slimemold'){
+    // Animate tube strengths
+    exMold.forEach((node,i)=>{
+      node.connections.forEach(j=>{
+        const target=exMold[j];
+        if(!target) return;
+        const flow=0.5+0.5*Math.sin(exTime*1.5+i*0.7);
+        node.strength=Math.max(0.1,Math.min(1,node.strength+flow*0.005-0.002));
+        exCtx.beginPath();
+        exCtx.moveTo(node.x,node.y); exCtx.lineTo(target.x,target.y);
+        exCtx.strokeStyle=`rgba(255,220,80,${node.strength*0.7})`;
+        exCtx.lineWidth=node.strength*5;
+        exCtx.shadowColor='rgba(255,220,80,0.4)'; exCtx.shadowBlur=node.strength*6;
+        exCtx.stroke(); exCtx.shadowBlur=0;
+      });
+    });
+    exMold.forEach(node=>{
+      exCtx.beginPath(); exCtx.arc(node.x,node.y,node.strength*9,0,Math.PI*2);
+      exCtx.fillStyle=`rgba(255,220,80,${0.5+node.strength*0.4})`;
+      exCtx.shadowColor='rgba(255,220,80,0.5)'; exCtx.shadowBlur=12;
+      exCtx.fill(); exCtx.shadowBlur=0;
+    });
+  } else if(id==='gameoflife'){
+    lifeFrame++;
+    if(lifeFrame%6===0&&exMold[0]){
+      const {cols,rows}=exMold[0];
+      const next=Array.from({length:rows},()=>Array(cols).fill(0));
+      for(let r=0;r<rows;r++) for(let c=0;c<cols;c++){
+        let n=0;
+        for(let dr=-1;dr<=1;dr++) for(let dc=-1;dc<=1;dc++){
+          if(dr===0&&dc===0) continue;
+          const nr=(r+dr+rows)%rows, nc=(c+dc+cols)%cols;
+          n+=exCells[nr][nc];
+        }
+        const alive=exCells[r][c];
+        next[r][c]=(alive&&(n===2||n===3))||((!alive)&&n===3)?1:0;
+      }
+      exCells=next;
+    }
+    if(exMold[0]){
+      const {cols,rows,cellW,cellH}=exMold[0];
+      for(let r=0;r<rows;r++) for(let c=0;c<cols;c++){
+        if(exCells[r][c]){
+          const heat=Math.min(1,(exTime*0.01+r*0.01+c*0.01)%1);
+          exCtx.fillStyle=`hsl(${260+heat*80},70%,${50+heat*20}%)`;
+          exCtx.fillRect(c*cellW,r*cellH,cellW-0.5,cellH-0.5);
+        }
+      }
+    }
+  } else if(id==='neurons'){
+    // Draw connections
+    exNeurons2.forEach((n,i)=>{
+      n.connections.forEach(j=>{
+        const t=exNeurons2[j];
+        exCtx.beginPath(); exCtx.moveTo(n.x,n.y); exCtx.lineTo(t.x,t.y);
+        exCtx.strokeStyle=n.firing?`rgba(255,230,50,0.4)`:'rgba(100,160,255,0.08)';
+        exCtx.lineWidth=n.firing?1.5:0.5; exCtx.stroke();
+      });
+    });
+    // Update and draw neurons
+    exNeurons2.forEach(n=>{
+      n.potential+=0.003+Math.random()*0.005;
+      if(n.potential>n.threshold){
+        n.firing=true; n.fireTimer=12; n.potential=0;
+        // Propagate
+        n.connections.forEach(j=>{
+          const t=exNeurons2[j];
+          t.potential=Math.min(t.potential+0.35,1);
+        });
+      }
+      if(n.fireTimer>0) n.fireTimer--;
+      else n.firing=false;
+      const r=n.firing?9:4+n.potential*3;
+      exCtx.beginPath(); exCtx.arc(n.x,n.y,r,0,Math.PI*2);
+      exCtx.fillStyle=n.firing?'rgba(255,230,50,0.95)':n.color+'77'; exCtx.fill();
+      if(n.firing){
+        exCtx.shadowColor='rgba(255,230,50,0.8)'; exCtx.shadowBlur=18; exCtx.fill(); exCtx.shadowBlur=0;
+      }
+    });
+  } else if(id==='markets'){
+    const state=exMold[0];
+    // Update market
+    let bids=0,asks=0;
+    exMarket.forEach(a=>{
+      const noise=(Math.random()-0.5)*2;
+      a.x+=noise*0.8+(a.type==='buyer'?0.3:-0.3);
+      a.y+=noise*0.5;
+      a.x=Math.max(0,Math.min(W,a.x));
+      a.y=Math.max(0,Math.min(H,a.y));
+      if(a.type==='buyer') bids+=a.value;
+      else asks+=a.value;
+      exCtx.beginPath(); exCtx.arc(a.x,a.y,3,0,Math.PI*2);
+      exCtx.fillStyle=a.color; exCtx.fill();
+    });
+    // Price moves toward equilibrium
+    const equilibrium=(bids/exMarket.filter(x=>x.type==='buyer').length+
+      asks/exMarket.filter(x=>x.type==='seller').length)/2;
+    state.price+=(equilibrium-state.price)*0.02+(Math.random()-0.5)*1.5;
+    state.price=Math.max(20,Math.min(160,state.price));
+    state.history.push(state.price);
+    if(state.history.length>120) state.history.shift();
+    // Draw price chart
+    const chartH=60,chartY=H-chartH-10,chartX=10,chartW=W-20;
+    exCtx.fillStyle='rgba(8,6,15,0.7)'; exCtx.fillRect(chartX,chartY,chartW,chartH);
+    exCtx.strokeStyle='rgba(180,140,255,0.2)'; exCtx.lineWidth=1;
+    exCtx.strokeRect(chartX,chartY,chartW,chartH);
+    exCtx.beginPath();
+    state.history.forEach((p,i)=>{
+      const px=chartX+i/state.history.length*chartW;
+      const py=chartY+chartH-(p-20)/140*chartH;
+      i===0?exCtx.moveTo(px,py):exCtx.lineTo(px,py);
+    });
+    exCtx.strokeStyle='rgba(180,140,255,0.8)'; exCtx.lineWidth=1.5; exCtx.stroke();
+    exCtx.fillStyle='rgba(232,224,255,0.6)'; exCtx.font='9px Space Mono';
+    exCtx.fillText(`PRICE: ${state.price.toFixed(1)}  NO SINGLE ENTITY SET THIS NUMBER`,chartX+4,chartY-6);
+  }
+  exTime+=0.016;
+}
+
+function animateEx(){
+  drawEx();
+  exRaf=requestAnimationFrame(animateEx);
+}
+
+// ============================================================
+//  TIER III — RULES ENGINE
+// ============================================================
+let t3cvs,t3ctx,t3raf;
+let t3Boids=[];
+let t3Mouse={x:0,y:0,active:false,r:90};
+let t3Rules={sep:1.5,ali:1.0,coh:0.8,spd:1.8,per:55,type:'flock'};
+let t3Count=200;
+let t3Frame=0;
+
+const PRESETS=[
+  {name:'MURMURATION',rules:{sep:1.8,ali:1.3,coh:0.7,spd:2.2,per:50},note:'Classic flocking. High alignment creates smooth flowing formations.'},
+  {name:'SCHOOLING FISH',rules:{sep:2.5,ali:0.8,coh:1.4,spd:2.8,per:40},note:'Tight cohesion, strong separation. Dense schools that compress and expand.'},
+  {name:'FIREFLIES',rules:{sep:0.4,ali:0.2,coh:1.8,spd:0.6,per:80},note:'Slow, high cohesion. Agents clump into glowing clusters.'},
+  {name:'TRAFFIC JAM',rules:{sep:3.0,ali:2.5,coh:0.2,spd:1.2,per:35},note:'High alignment and separation creates stop-start wave patterns.'},
+  {name:'CHAOS',rules:{sep:0.1,ali:0.0,coh:0.0,spd:3.5,per:20},note:'No rules. Pure random motion. No emergence. Complexity drops to minimum.'},
+  {name:'PURE ORDER',rules:{sep:0.3,ali:3.0,coh:2.5,spd:1.5,per:100},note:'Maximum alignment and cohesion. One giant flock. Complexity drops again.'},
+];
+
+function initT3(){
+  t3cvs=document.getElementById('t3Canvas');
+  t3ctx=t3cvs.getContext('2d');
+  resizeT3();
+  window.addEventListener('resize',()=>{resizeT3();spawnT3Boids();});
+  const wrap=document.getElementById('t3wrap');
+  wrap.addEventListener('mousemove',e=>{
+    const r=t3cvs.getBoundingClientRect();
+    t3Mouse.x=e.clientX-r.left; t3Mouse.y=e.clientY-r.top; t3Mouse.active=true;
+  });
+  wrap.addEventListener('mouseleave',()=>t3Mouse.active=false);
+  wrap.addEventListener('touchmove',e=>{
+    e.preventDefault();
+    const r=t3cvs.getBoundingClientRect();
+    t3Mouse.x=e.touches[0].clientX-r.left; t3Mouse.y=e.touches[0].clientY-r.top; t3Mouse.active=true;
+  },{passive:false});
+  wrap.addEventListener('touchend',()=>t3Mouse.active=false);
+  buildPresets();
+  spawnT3Boids();
+  if(!t3raf) animateT3();
+}
+
+function resizeT3(){
+  if(!t3cvs) return;
+  const p=t3cvs.parentElement;
+  t3cvs.width=p.offsetWidth*devicePixelRatio; t3cvs.height=p.offsetHeight*devicePixelRatio;
+  t3ctx.scale(devicePixelRatio,devicePixelRatio);
+}
+
+function buildPresets(){
+  const g=document.getElementById('presetGrid');
+  g.innerHTML='';
+  PRESETS.forEach(p=>{
+    const btn=document.createElement('button');
+    btn.className='preset-btn'; btn.textContent=p.name;
+    btn.addEventListener('click',()=>{
+      Object.assign(t3Rules,p.rules);
+      document.querySelectorAll('.preset-btn').forEach(b=>b.classList.remove('active'));
+      btn.classList.add('active');
+      document.getElementById('t3Sep').value=p.rules.sep;
+      document.getElementById('t3Ali').value=p.rules.ali;
+      document.getElementById('t3Coh').value=p.rules.coh;
+      document.getElementById('t3Spd').value=p.rules.spd;
+      document.getElementById('t3Per').value=p.rules.per;
+      document.getElementById('t3SepV').textContent=p.rules.sep.toFixed(1);
+      document.getElementById('t3AliV').textContent=p.rules.ali.toFixed(1);
+      document.getElementById('t3CohV').textContent=p.rules.coh.toFixed(1);
+      document.getElementById('t3SpdV').textContent=p.rules.spd.toFixed(1);
+      document.getElementById('t3PerV').textContent=p.rules.per;
+      document.getElementById('t3BehaviorNote').textContent=p.note;
+      t3Boids.forEach(b=>Object.assign(b.rules,t3Rules));
+    });
+    g.appendChild(btn);
+  });
+}
+
+function spawnT3Boids(){
+  const W=t3cvs.offsetWidth||800,H=t3cvs.offsetHeight||600;
+  t3Boids=[];
+  for(let i=0;i<t3Count;i++){
+    const h=240+i/t3Count*140;
+    t3Boids.push(new Boid(Math.random()*W,Math.random()*H,`hsl(${h},65%,65%)`,{...t3Rules}));
+  }
+}
+
+function updateT3(){
+  t3Rules.sep=parseFloat(document.getElementById('t3Sep').value);
+  t3Rules.ali=parseFloat(document.getElementById('t3Ali').value);
+  t3Rules.coh=parseFloat(document.getElementById('t3Coh').value);
+  t3Rules.spd=parseFloat(document.getElementById('t3Spd').value);
+  t3Rules.per=parseFloat(document.getElementById('t3Per').value);
+  const nc=parseInt(document.getElementById('t3Cnt').value);
+  document.getElementById('t3SepV').textContent=t3Rules.sep.toFixed(1);
+  document.getElementById('t3AliV').textContent=t3Rules.ali.toFixed(1);
+  document.getElementById('t3CohV').textContent=t3Rules.coh.toFixed(1);
+  document.getElementById('t3SpdV').textContent=t3Rules.spd.toFixed(1);
+  document.getElementById('t3PerV').textContent=t3Rules.per;
+  document.getElementById('t3CntV').textContent=nc;
+  if(nc!==t3Count){t3Count=nc;spawnT3Boids();}
+  else t3Boids.forEach(b=>Object.assign(b.rules,t3Rules));
+}
+
+function drawT3(){
+  if(!t3ctx) return;
+  const W=t3cvs.offsetWidth,H=t3cvs.offsetHeight;
+  if(!W||!H) return;
+  t3ctx.fillStyle='rgba(8,6,15,0.18)'; t3ctx.fillRect(0,0,W,H);
+  t3Boids.forEach(b=>b.update(t3Boids,W,H,t3Mouse));
+  t3Boids.forEach(b=>b.draw(t3ctx,true));
+  if(t3Mouse.active){
+    const mg=t3ctx.createRadialGradient(t3Mouse.x,t3Mouse.y,0,t3Mouse.x,t3Mouse.y,90);
+    mg.addColorStop(0,'rgba(255,140,220,0.1)'); mg.addColorStop(1,'transparent');
+    t3ctx.fillStyle=mg; t3ctx.fillRect(0,0,W,H);
+  }
+  t3Frame++;
+  if(t3Frame%45===0){
+    const cmplx=measureComplexity(t3Boids.slice(0,100),W,H);
+    document.getElementById('t3Complexity').textContent=cmplx.toFixed(0);
+    const spds=t3Boids.slice(0,50).map(b=>Math.sqrt(b.vx*b.vx+b.vy*b.vy));
+    const avgSpd=spds.reduce((a,b)=>a+b,0)/spds.length;
+    // Coherence: how aligned are velocities
+    const avgVx=t3Boids.reduce((a,b)=>a+b.vx,0)/t3Boids.length;
+    const avgVy=t3Boids.reduce((a,b)=>a+b.vy,0)/t3Boids.length;
+    const coherence=Math.sqrt(avgVx*avgVx+avgVy*avgVy)/t3Rules.spd;
+    document.getElementById('t3Coherence').textContent=(coherence*100).toFixed(0)+'%';
+    document.getElementById('t3Entropy').textContent=(100-cmplx).toFixed(0);
+    // Count clusters roughly
+    const groups=Math.max(1,Math.round(t3Boids.length/(3+t3Rules.coh*2)));
+    document.getElementById('t3AvgGroup').textContent=Math.round(t3Boids.length/groups);
+  }
+}
+
+function animateT3(){
+  drawT3();
+  t3raf=requestAnimationFrame(animateT3);
+}
+
+// ============================================================
+//  TIER IV — BUILD YOUR OWN
+// ============================================================
+let t4cvs,t4ctx,t4raf;
+let t4Boids=[];
+let t4Foods=[];
+let t4Mouse={x:0,y:0,active:false,r:100};
+let t4Frame=0;
+let t4SelectedType=0;
+let t4Shockwaves=[];
+
+const T4_AGENT_TYPES=[
+  {name:'FLOCK',color:'#b48cff',rules:{sep:1.5,ali:1.0,coh:0.8,spd:1.8,per:55,flee:0,chase:0,type:'flock'},count:0},
+  {name:'PREDATOR',color:'#ff6464',rules:{sep:1.0,ali:0.5,coh:0.3,spd:2.8,per:80,flee:0,chase:2.5,type:'predator'},count:0},
+  {name:'PREY',color:'#64ffaa',rules:{sep:2.2,ali:0.8,coh:0.6,spd:2.4,per:65,flee:2.5,chase:0,type:'prey'},count:0},
+  {name:'DRIFTER',color:'#ffdc64',rules:{sep:0.3,ali:0.1,coh:0.2,spd:0.8,per:30,flee:0,chase:0,type:'flock'},count:0},
+];
+
+function initT4(){
+  t4cvs=document.getElementById('t4Canvas');
+  t4ctx=t4cvs.getContext('2d');
+  resizeT4();
+  window.addEventListener('resize',resizeT4);
+  buildT4AgentList();
+  // Spawn initial flock
+  const W=t4cvs.offsetWidth||800,H=t4cvs.offsetHeight||600;
+  for(let i=0;i<80;i++){
+    const t=T4_AGENT_TYPES[0];
+    t4Boids.push(new Boid(Math.random()*W,Math.random()*H,t.color,{...t.rules}));
+    T4_AGENT_TYPES[0].count++;
+  }
+  updateT4AgentList();
+  const wrap=document.getElementById('t4wrap');
+  wrap.addEventListener('mousemove',e=>{
+    const r=t4cvs.getBoundingClientRect();
+    t4Mouse.x=e.clientX-r.left; t4Mouse.y=e.clientY-r.top; t4Mouse.active=true;
+  });
+  wrap.addEventListener('mouseleave',()=>t4Mouse.active=false);
+  wrap.addEventListener('click',e=>{
+    const r=t4cvs.getBoundingClientRect();
+    const mx=e.clientX-r.left,my=e.clientY-r.top;
+    const t=T4_AGENT_TYPES[t4SelectedType];
+    for(let i=0;i<12;i++){
+      t4Boids.push(new Boid(mx+(Math.random()-0.5)*30,my+(Math.random()-0.5)*30,t.color,{...t.rules}));
+      t.count++;
+    }
+    updateT4AgentList();
+    t4Log(`Spawned 12 ${t.name} agents at click position.`,'emerge');
+  });
+  wrap.addEventListener('touchmove',e=>{
+    e.preventDefault();
+    const r=t4cvs.getBoundingClientRect();
+    t4Mouse.x=e.touches[0].clientX-r.left; t4Mouse.y=e.touches[0].clientY-r.top; t4Mouse.active=true;
+  },{passive:false});
+  wrap.addEventListener('touchend',()=>t4Mouse.active=false);
+  if(!t4raf) animateT4();
+  t4Log('System initialized. 80 FLOCK agents active.','emerge');
+  t4Log('Click canvas to spawn agents. Try mixing types.','');
+}
+
+function resizeT4(){
+  if(!t4cvs) return;
+  const p=t4cvs.parentElement;
+  t4cvs.width=p.offsetWidth*devicePixelRatio; t4cvs.height=p.offsetHeight*devicePixelRatio;
+  t4ctx.scale(devicePixelRatio,devicePixelRatio);
+}
+
+function buildT4AgentList(){
+  const list=document.getElementById('agentTypeList');
+  list.innerHTML='';
+  T4_AGENT_TYPES.forEach((t,i)=>{
+    const d=document.createElement('div');
+    d.className='agent-row'+(i===0?' selected':''); d.id='at-'+i;
+    d.innerHTML=`<div class="agent-dot" style="background:${t.color}"></div>
+      <div class="agent-name">${t.name}</div>
+      <div class="agent-count" id="atc-${i}">${t.count}</div>`;
+    d.addEventListener('click',()=>{
+      t4SelectedType=i;
+      document.querySelectorAll('.agent-row').forEach(r=>r.classList.remove('selected'));
+      d.classList.add('selected');
+      // Load rules into sliders
+      document.getElementById('t4Sep').value=t.rules.sep;
+      document.getElementById('t4Ali').value=t.rules.ali;
+      document.getElementById('t4Coh').value=t.rules.coh;
+      document.getElementById('t4Flee').value=t.rules.flee;
+      document.getElementById('t4Chase').value=t.rules.chase;
+      document.getElementById('t4SepV').textContent=t.rules.sep.toFixed(1);
+      document.getElementById('t4AliV').textContent=t.rules.ali.toFixed(1);
+      document.getElementById('t4CohV').textContent=t.rules.coh.toFixed(1);
+      document.getElementById('t4FleeV').textContent=t.rules.flee.toFixed(1);
+      document.getElementById('t4ChaseV').textContent=t.rules.chase.toFixed(1);
+    });
+    list.appendChild(d);
+  });
+}
+
+function updateT4AgentList(){
+  T4_AGENT_TYPES.forEach((t,i)=>{
+    const el=document.getElementById('atc-'+i); if(el) el.textContent=t.count;
+  });
+}
+
+function updateT4AgentRules(){
+  const t=T4_AGENT_TYPES[t4SelectedType];
+  t.rules.sep=parseFloat(document.getElementById('t4Sep').value);
+  t.rules.ali=parseFloat(document.getElementById('t4Ali').value);
+  t.rules.coh=parseFloat(document.getElementById('t4Coh').value);
+  t.rules.flee=parseFloat(document.getElementById('t4Flee').value);
+  t.rules.chase=parseFloat(document.getElementById('t4Chase').value);
+  document.getElementById('t4SepV').textContent=t.rules.sep.toFixed(1);
+  document.getElementById('t4AliV').textContent=t.rules.ali.toFixed(1);
+  document.getElementById('t4CohV').textContent=t.rules.coh.toFixed(1);
+  document.getElementById('t4FleeV').textContent=t.rules.flee.toFixed(1);
+  document.getElementById('t4ChaseV').textContent=t.rules.chase.toFixed(1);
+  // Update live boids of this type
+  t4Boids.filter(b=>b.color===t.color).forEach(b=>Object.assign(b.rules,t.rules));
+}
+
+function t4Spawn(){
+  const W=t4cvs.offsetWidth||800,H=t4cvs.offsetHeight||600;
+  const t=T4_AGENT_TYPES[t4SelectedType];
+  for(let i=0;i<25;i++){
+    t4Boids.push(new Boid(Math.random()*W,Math.random()*H,t.color,{...t.rules}));
+    t.count++;
+  }
+  updateT4AgentList();
+  t4Log(`25 ${t.name} agents added.`,'emerge');
+}
+
+function t4AddFood(){
+  const W=t4cvs.offsetWidth||800,H=t4cvs.offsetHeight||600;
+  t4Foods.push({x:Math.random()*W,y:Math.random()*H,strength:1,r:20});
+  t4Log('Attractor placed. Agents will be drawn toward it.','');
+}
+
+function t4Shockwave(){
+  const W=t4cvs.offsetWidth||800,H=t4cvs.offsetHeight||600;
+  t4Shockwaves.push({x:W/2,y:H/2,r:0,maxR:Math.min(W,H)*0.6,strength:4});
+  t4Log('Shockwave initiated from center.','warn');
+}
+
+function t4Clear(){
+  t4Boids=[];t4Foods=[];t4Shockwaves=[];
+  T4_AGENT_TYPES.forEach(t=>t.count=0);
+  updateT4AgentList();
+  t4Log('System cleared.','warn');
+}
+
+function t4Log(msg,type=''){
+  const log=document.getElementById('t4LogEntries');
+  const e=document.createElement('div');
+  e.className=`t4-log-entry ${type}`;
+  e.textContent=msg;
+  log.insertBefore(e,log.firstChild);
+  while(log.children.length>15) log.removeChild(log.lastChild);
+}
+
+let t4PrevComplexity=0;
+function drawT4(){
+  if(!t4ctx) return;
+  const W=t4cvs.offsetWidth,H=t4cvs.offsetHeight;
+  if(!W||!H) return;
+  t4ctx.fillStyle='rgba(8,6,15,0.18)'; t4ctx.fillRect(0,0,W,H);
+
+  // Shockwaves
+  t4Shockwaves=t4Shockwaves.filter(s=>{
+    s.r+=4;
+    const alpha=Math.max(0,1-s.r/s.maxR);
+    t4ctx.beginPath(); t4ctx.arc(s.x,s.y,s.r,0,Math.PI*2);
+    t4ctx.strokeStyle=`rgba(255,220,100,${alpha*0.5})`; t4ctx.lineWidth=2; t4ctx.stroke();
+    // Push boids
+    t4Boids.forEach(b=>{
+      const dx=b.x-s.x,dy=b.y-s.y;
+      const d=Math.sqrt(dx*dx+dy*dy);
+      if(Math.abs(d-s.r)<20){
+        b.vx+=dx/d*s.strength; b.vy+=dy/d*s.strength;
+      }
+    });
+    return s.r<s.maxR;
+  });
+
+  // Food attractors
+  t4Foods.forEach(f=>{
+    const pulse=1+0.2*Math.sin(Date.now()*0.003);
+    t4ctx.beginPath(); t4ctx.arc(f.x,f.y,f.r*pulse,0,Math.PI*2);
+    t4ctx.fillStyle='rgba(100,255,150,0.08)'; t4ctx.fill();
+    t4ctx.strokeStyle='rgba(100,255,150,0.4)'; t4ctx.lineWidth=1.5; t4ctx.stroke();
+    t4ctx.beginPath(); t4ctx.arc(f.x,f.y,4,0,Math.PI*2);
+    t4ctx.fillStyle='rgba(100,255,150,0.8)'; t4ctx.fill();
+    // Pull boids
+    t4Boids.forEach(b=>{
+      const dx=f.x-b.x,dy=f.y-b.y;
+      const d=Math.sqrt(dx*dx+dy*dy);
+      if(d<120&&d>1){b.vx+=dx/d*0.015;b.vy+=dy/d*0.015;}
+    });
+  });
+
+  // Update and draw boids
+  t4Boids.forEach(b=>b.update(t4Boids,W,H,t4Mouse.active?t4Mouse:null));
+  t4Boids.forEach(b=>b.draw(t4ctx,true));
+
+  // Mouse glow
+  if(t4Mouse.active){
+    const mg=t4ctx.createRadialGradient(t4Mouse.x,t4Mouse.y,0,t4Mouse.x,t4Mouse.y,100);
+    mg.addColorStop(0,'rgba(255,140,220,0.08)'); mg.addColorStop(1,'transparent');
+    t4ctx.fillStyle=mg; t4ctx.fillRect(0,0,W,H);
+  }
+
+  t4Frame++;
+  if(t4Frame%40===0&&t4Boids.length>5){
+    const sample=t4Boids.slice(0,Math.min(80,t4Boids.length));
+    const cmplx=measureComplexity(sample,W,H);
+    document.getElementById('t4CmplxVal').textContent=cmplx.toFixed(0);
+    const fill=document.getElementById('t4CmplxFill');
+    fill.style.width=cmplx+'%';
+    fill.style.background=getComplexityColor(cmplx);
+    fill.style.boxShadow=`0 0 8px ${getComplexityColor(cmplx)}`;
+    // Log emergence moments
+    if(cmplx>70&&t4PrevComplexity<=70) t4Log(`High emergence detected. Complexity: ${cmplx.toFixed(0)}`,'emerge');
+    if(cmplx<20&&t4PrevComplexity>=20) t4Log(`System approaching chaos. Complexity: ${cmplx.toFixed(0)}`,'warn');
+    t4PrevComplexity=cmplx;
+    // Count types
+    T4_AGENT_TYPES.forEach(t=>{
+      t.count=t4Boids.filter(b=>b.color===t.color).length;
+    });
+    updateT4AgentList();
+  }
+}
+
+function animateT4(){
+  drawT4();
+  t4raf=requestAnimationFrame(animateT4);
+}
+
+// ============================================================
+//  VOID TOGGLE
+// ============================================================
+let isVoid=true;
+function toggleVoid(){
+  isVoid=!isVoid;
+  document.getElementById('voidBtn').textContent=isVoid?'☽ VOID':'☼ DAY';
+  const r=document.documentElement.style;
+  if(isVoid){
+    r.setProperty('--bg','#08060f');
+    r.setProperty('--border','rgba(180,140,255,0.13)');
+    r.setProperty('--text','#e8e0ff');
+    r.setProperty('--text-dim','rgba(232,224,255,0.4)');
+    r.setProperty('--accent','#b48cff');
+    r.setProperty('--glow','rgba(180,140,255,0.12)');
+    document.querySelector('.header').style.background='rgba(8,6,15,0.95)';
+  }else{
+    r.setProperty('--bg','#f5f3ff');
+    r.setProperty('--border','rgba(80,40,160,0.15)');
+    r.setProperty('--text','#180f30');
+    r.setProperty('--text-dim','rgba(24,15,48,0.5)');
+    r.setProperty('--accent','#6020c0');
+    r.setProperty('--glow','rgba(96,32,192,0.1)');
+    document.querySelector('.header').style.background='rgba(245,243,255,0.95)';
+  }
+}
+
+// ============================================================
+//  TIER SWITCHING
+// ============================================================
+let curTier=1;
+function setTier(n){
+  curTier=n;
+  document.querySelectorAll('.tier-btn').forEach((b,i)=>b.classList.toggle('active',i+1===n));
+  [1,2,3,4].forEach(i=>document.getElementById('tier'+i).classList.toggle('active',i===n));
+  setTimeout(()=>{
+    if(n===1&&t1cvs) resizeT1();
+    if(n===2){
+      if(!exCvs) initExCanvas();
+      else resizeEx();
+      buildExGrid();
+    }
+    if(n===3){
+      if(!t3cvs) initT3();
+      else{resizeT3();spawnT3Boids();}
+    }
+    if(n===4){
+      if(!t4cvs) initT4();
+      else resizeT4();
+    }
+  },60);
+}
+
+// ============================================================
+//  INIT
+// ============================================================
+window.addEventListener('load',()=>{
+  initT1();
+});
+</script>
+</body>
+</html>
