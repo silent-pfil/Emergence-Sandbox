@@ -122,13 +122,14 @@ at the molecular instruction set and scales outward
 to the edge of what human knowledge can currently
 describe.
 
+- [Quantum Sandbox](https://silent-pfil.github.io/Quantum-Sandbox/) live
 - [DNA Sandbox](https://silent-pfil.github.io/DNA-Sandbox/) — live
-- EMS Sandbox — live
-- Cellular Sandbox — live
-- Emergence Sandbox — live
-- Neural Transmission Sandbox — in development
-- Universe Sandbox (Newtonian) 
-- Einsteinian Sandbox — in development
+- [EMS Sandbox](https://silent-pfil.github.io/EMS-Sandbox/) — live
+- [Cellular Sandbox](https://silent-pfil.github.io/Cell-Sandbox/) — live
+- [Emergence Sandbox](https://silent-pfil.github.io/Emergence-Sandbox/) — live
+- [Neural Transmission Sandbox](https://silent-pfil.github.io/Neural-Sandbox/) — live
+- Newtonian Sandbox - "Universe Sandbox"
+- [Einsteinian Sandbox](https://silent-pfil.github.io/Einsteinian-Sandbox/) — live
 
 ## The Idea Behind the Series
 Every choice you make is emergent behavior.
