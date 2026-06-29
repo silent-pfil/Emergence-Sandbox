@@ -143,7 +143,7 @@ somewhere else. That moment of recognition —
 that is how independent thinkers are made.
 
 ## License
-MIT — free to use, share, and build on.
+No License — free to use, share with others, and think.
 Give it to a kid. Give it to a scientist.
 Give it to anyone who ever asked why
 and didn't get a real answer.
